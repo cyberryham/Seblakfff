@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Toko Cimol Seblak</title>
+    <style>
+      body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    background-color: #333;
+    color: white;
+    padding: 10px;
+}
+
+.menu a {
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+}
+
+#topping-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 20px;
+}
+
+.topping {
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin: 10px;
+    padding: 15px;
+    width: calc(33% - 40px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.topping:hover {
+    transform: scale(1.02);
+}
+
+.topping img {
+    width: 100%;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #218838;
+}
+
+h2 {
+    color: #333;
+}
+
+#cart {
+    margin: 20px;
+    padding: 15px;
+    background-color: white;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.cart-item img {
+    width: 50px;
+    height: 50px;
+    border-radius: 5px;
+}
+
+.cart-item-details {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.cart-item-price {
+    font-weight: bold;
+}
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="hamburger" onclick="toggleMenu()">☰</div>
+        <div class="menu" id="menu">
+            <a href="#" onclick="showAddTopping()">Tambah Topping</a>
+            <a href="#" onclick="showCart()">Keranjang (<span id="cart-count">0</span>)</a>
+        </div>
+    </div>
+
+    <div id="topping-container">
+        <!-- Topping akan ditambahkan di sini -->
+    </div>
+
+    <div id="add-topping-form" style="display:none;">
+        <h2>Tambah Topping</h2>
+        <input type="password" id="admin-password" placeholder="Password">
+        <button onclick="verifyPassword()">Submit</button>
+    </div>
+
+    <div id="new-topping-form" style="display:none;">
+        <h2>Tambah Menu</h2>
+        <input type="file" id="image" accept="image/*" required>
+        <input type="text" id="product-name" placeholder="Nama Produk" required>
+        <input type="number" id="product-price" placeholder="Harga" required>
+        <button onclick="addMenu()">Tambah Menu</button>
+        <button onclick="finishAddingToppings()">Selesai</button>
+    </div>
+
+    <div id="cart" style="display:none;">
+        <h2>Keranjang</h2>
+        <div id="cart-items"></div>
+        <div id="total-price"></div>
+        <button onclick="checkout()">Checkout via WhatsApp</button>
+        <button onclick="clearCart()">Hapus Keranjang</button>
+    </div>
+
+    <script>
+      let toppings = [];
+let cart = [];
+
+function toggleMenu() {
+    const menu = document.getElementById("menu");
+    menu.style.display = menu.style.display === "none" ? "block" : "none";
+}
+
+function loadToppings() {
+    const storedToppings = JSON.parse(localStorage.getItem('toppings'));
+    if (storedToppings) {
+        toppings = storedToppings;
+        displayToppings();
+    }
+}
+
+function showAddTopping() {
+    document.getElementById("add-topping-form").style.display = "block";
+}
+
+function verifyPassword() {
+    const password = document.getElementById("admin-password").value;
+    if (password === "SEBLAK123") {
+        document.getElementById("new-topping-form").style.display = "block";
+        document.getElementById("add-topping-form").style.display = "none"; // Sembunyikan form password
+    } else {
+        alert("Password salah!");
+    }
+}
+
+function addMenu() {
+    const imageInput = document.getElementById("image");
+    if (!imageInput.files.length) {
+        alert("Silakan pilih gambar terlebih dahulu.");
+        return;
+    }
+
+    const image = imageInput.files[0];
+    const name = document.getElementById("product-name").value;
+    const price = document.getElementById("product-price").value;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const topping = {
+            name: name,
+            price: price,
+            image: e.target.result
+        };
+        toppings.push(topping);
+        localStorage.setItem('toppings', JSON.stringify(toppings)); // Simpan topping ke Local Storage
+        displayToppings();
+        updateCartCount();
+        resetForm();
+    };
+    reader.readAsDataURL(image);
+}
+
+function displayToppings() {
+    const container = document.getElementById("topping-container");
+    container.innerHTML = "";
+    toppings.forEach((topping, index) => {
+        const div = document.createElement("div");
+        div.className = "topping";
+        div.innerHTML = `
+            <img src="${topping.image}" alt="${topping.name}">
+            <h3>${topping.name}</h3>
+            <p>Harga: ${topping.price}</p>
+            <button onclick="addToCart(${index})">Beli</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function addToCart(index) {
+    cart.push(toppings[index]);
+    alert(`${toppings[index].name} telah ditambahkan ke keranjang!`);
+    updateCartCount();
+}
+
+function updateCartCount() {
+    document.getElementById("cart-count").innerText = cart.length;
+}
+
+function showCart() {
+    const cartContainer = document.getElementById("cart");
+    const cartItemsContainer = document.getElementById("cart-items");
+    const totalPriceContainer = document.getElementById("total-price");
+    
+    cartItemsContainer.innerHTML = ""; // Kosongkan sebelumnya
+    let total = 0;
+
+    cart.forEach(item => {
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "cart-item";
+        itemDiv.innerHTML = `
+            <img src="${item.image}" alt="${item.name}">
+            <div class="cart-item-details">
+                <h4>${item.name}</h4>
+                <p class="cart-item-price">Harga: ${item.price}</p>
+            </div>
+        `;
+        cartItemsContainer.appendChild(itemDiv);
+        total += Number(item.price);
+    });
+
+    totalPriceContainer.innerHTML = `<h3>Total: ${total}</h3>`;
+    cartContainer.style.display = "block"; // Tampilkan keranjang
+}
+
+function checkout() {
+    let total = 0;
+    let items = "";
+    cart.forEach(item => {
+        items += `${item.name} - ${item.price}\n`;
+        total += Number(item.price);
+    });
+    const message = `Keranjang:\n${items}Total: ${total}`;
+    const url = `https://wa.me/6285724385372?text=${encodeURIComponent(message)}`;
+    window.open(url);
+}
+
+function resetForm() {
+    document.getElementById("image").value = "";
+    document.getElementById("product-name").value = "";
+    document.getElementById("product-price").value = "";
+}
+
+function finishAddingToppings() {
+    document.getElementById("new-topping-form").style.display = "none";
+    alert("Tambah topping selesai!");
+}
+
+// Hapus keranjang
+function clearCart() {
+    cart = [];
+    updateCartCount();
+    document.getElementById("cart-items").innerHTML = "";
+    document.getElementById("total-price").innerHTML = "";
+}
+
+// Panggil loadToppings saat halaman dimuat
+window.onload = loadToppings;
+    </script>
+</body>
+</html>
